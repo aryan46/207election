@@ -105,35 +105,7 @@ app.post('/api/vote', (req, res) => {
     });
 });
 
-// Delete Voter & Revert Vote
-app.delete('/api/voters/:email', (req, res) => {
-    const email = req.params.email;
 
-    // 1. Find who they voted for to decrement the count
-    db.get("SELECT candidate_id FROM vote_audit WHERE voter_email = ?", [email], (err, audit) => {
-        if (audit) {
-            // They voted, so decrement the count
-            db.run("UPDATE candidates SET votes = votes - 1 WHERE id = ?", [audit.candidate_id]);
-            // Remove audit record
-            db.run("DELETE FROM vote_audit WHERE voter_email = ?", [email]);
-        }
-
-        // 2. Delete the voter account
-        db.run("DELETE FROM voters WHERE email = ?", [email], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "Voter delete and vote reverted (if any)" });
-        });
-    });
-});
-
-app.get('/api/admin/audit', (req, res) => {
-    db.all("SELECT * FROM vote_audit ORDER BY timestamp DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-    });
-});
 
 // --- Auth System ---
 
