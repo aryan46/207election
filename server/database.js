@@ -46,6 +46,15 @@ function initDb() {
 
         // Initialize voting status if not exists
         db.run(`INSERT OR IGNORE INTO config (key, value) VALUES ('votingEnabled', 'true')`);
+
+        // Vote Audit Table (Secure Log)
+        db.run(`CREATE TABLE IF NOT EXISTS vote_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voter_email TEXT,
+            candidate_id INTEGER,
+            candidate_name TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
     });
 }
 
