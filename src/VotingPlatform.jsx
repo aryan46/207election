@@ -10,7 +10,6 @@ const VotingPlatform = () => {
     const [voters, setVoters] = useState([]); // Used for admin stats mainly
     const [votingEnabled, setVotingEnabled] = useState(true);
     const [hasVoted, setHasVoted] = useState(false);
-    const [hasVoted, setHasVoted] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [auditLog, setAuditLog] = useState([]); // Fixed: Added missing state
 
