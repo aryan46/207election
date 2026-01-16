@@ -77,32 +77,61 @@ app.post('/api/vote', (req, res) => {
         }
 
         // ATOMIC UPDATE: preventing race conditions
-        // We try to set hasVoted = 1 ONLY if it is currently 0.
-        // If this update fails to change any rows, it means the user already voted.
         const sql = "UPDATE voters SET hasVoted = 1 WHERE email = ? AND hasVoted = 0";
 
         db.run(sql, [voterEmail], function (err) {
             if (err) return res.status(500).json({ error: err.message });
 
             if (this.changes === 0) {
-                // No rows updated means either user matches no email OR hasVoted was already 1
-                // We check if user exists to give better error message
                 db.get("SELECT * FROM voters WHERE email = ?", [voterEmail], (err, voter) => {
                     if (!voter) return res.status(404).json({ error: "Voter not found" });
                     return res.status(400).json({ error: "You have already cast your vote." });
                 });
             } else {
-                // Success! The flag was flipped from 0 to 1. Now we count the vote.
-                db.run("UPDATE candidates SET votes = votes + 1 WHERE id = ?", [candidateId], (err) => {
-                    if (err) {
-                        // In the rare (bad) case this fails, we should technically rollback the voter flag,
-                        // but for this simple app, we just log it.
-                        console.error("Failed to increment candidate vote:", err);
+                // Success! The flag was flipped.
+                db.run("UPDATE candidates SET votes = votes + 1 WHERE id = ?", [candidateId]);
+
+                // Audit Trail
+                db.get("SELECT name FROM candidates WHERE id = ?", [candidateId], (err, candidate) => {
+                    if (candidate) {
+                        db.run("INSERT INTO vote_audit (voter_email, candidate_id, candidate_name) VALUES (?, ?, ?)",
+                            [voterEmail, candidateId, candidate.name]);
                     }
-                    res.json({ message: "Vote cast successfully" });
                 });
+
+                res.json({ message: "Vote cast successfully" });
             }
         });
+    });
+});
+
+// Delete Voter & Revert Vote
+app.delete('/api/voters/:email', (req, res) => {
+    const email = req.params.email;
+
+    // 1. Find who they voted for to decrement the count
+    db.get("SELECT candidate_id FROM vote_audit WHERE voter_email = ?", [email], (err, audit) => {
+        if (audit) {
+            // They voted, so decrement the count
+            db.run("UPDATE candidates SET votes = votes - 1 WHERE id = ?", [audit.candidate_id]);
+            // Remove audit record
+            db.run("DELETE FROM vote_audit WHERE voter_email = ?", [email]);
+        }
+
+        // 2. Delete the voter account
+        db.run("DELETE FROM voters WHERE email = ?", [email], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Voter delete and vote reverted (if any)" });
+        });
+    });
+});
+
+app.get('/api/admin/audit', (req, res) => {
+    db.all("SELECT * FROM vote_audit ORDER BY timestamp DESC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
     });
 });
 
@@ -141,6 +170,30 @@ app.get('/api/stats', (req, res) => {
         db.all("SELECT * FROM voters", (err, voters) => {
             stats.voters = voters.map(v => ({ email: v.email, hasVoted: v.hasVoted }));
             res.json(stats);
+        });
+    });
+});
+
+app.get('/api/admin/audit', (req, res) => {
+    db.all("SELECT * FROM vote_audit ORDER BY timestamp DESC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.delete('/api/voters/:email', (req, res) => {
+    const email = req.params.email;
+    // 1. Revert the vote count
+    db.get("SELECT candidate_id FROM vote_audit WHERE voter_email = ?", [email], (err, row) => {
+        if (row) {
+            db.run("UPDATE candidates SET votes = votes - 1 WHERE id = ?", [row.candidate_id]);
+            db.run("DELETE FROM vote_audit WHERE voter_email = ?", [email]);
+        }
+
+        // 2. Delete the user
+        db.run("DELETE FROM voters WHERE email = ?", [email], function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Voter deleted" });
         });
     });
 });

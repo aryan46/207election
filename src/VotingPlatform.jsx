@@ -622,12 +622,48 @@ const VotingPlatform = () => {
                                     {voters.map((voter, idx) => (
                                         <div key={idx} className="flex justify-between items-center py-3 border-b border-zinc-800/50">
                                             <span className="text-zinc-300">{voter.email}</span>
-                                            <span className={`text-sm px-3 py-1 rounded-full ${voter.hasVoted ? 'bg-emerald-900/30 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
-                                                {voter.hasVoted ? 'Voted' : 'Not Voted'}
-                                            </span>
+                                            <div className="flex items-center gap-4">
+                                                <span className={`text-sm px-3 py-1 rounded-full ${voter.hasVoted ? 'bg-emerald-900/30 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                                                    {voter.hasVoted ? 'Voted' : 'Not Voted'}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleDeleteVoter(voter.email)}
+                                                    className="p-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                                    title="Delete Voter"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                     {voters.length === 0 && <p className="text-zinc-500 text-center py-6">No registered voters yet</p>}
+                                </div>
+                            </div>
+
+                            <div className="bg-zinc-900/40 border border-zinc-800/50 p-8 backdrop-blur-sm mt-8">
+                                <h3 className="text-2xl font-serif mb-6 text-amber-500">Vote Audit Log (Secure)</h3>
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="text-zinc-500 border-b border-zinc-800">
+                                            <tr>
+                                                <th className="pb-2">Time</th>
+                                                <th className="pb-2">Voter Email</th>
+                                                <th className="pb-2">Voted For</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {auditLog.map((log, idx) => (
+                                                <tr key={idx} className="border-b border-zinc-800/30 font-mono text-sm text-zinc-400">
+                                                    <td className="py-2">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                                                    <td className="py-2 text-zinc-200">{log.voter_email}</td>
+                                                    <td className="py-2 text-amber-500">{log.candidate_name}</td>
+                                                </tr>
+                                            ))}
+                                            {auditLog.length === 0 && (
+                                                <tr><td colSpan="3" className="text-center py-4 text-zinc-600">No votes recorded yet</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
