@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.DS_Store
+voting.db
+server/node_modules
+server/voting.db
+server/uploads/*
+!server/uploads/.gitkeep
