@@ -10,7 +10,9 @@ const VotingPlatform = () => {
     const [voters, setVoters] = useState([]); // Used for admin stats mainly
     const [votingEnabled, setVotingEnabled] = useState(true);
     const [hasVoted, setHasVoted] = useState(false);
+    const [hasVoted, setHasVoted] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [auditLog, setAuditLog] = useState([]); // Fixed: Added missing state
 
     // Registration form states
     const [voterForm, setVoterForm] = useState({ email: '', password: '' });
@@ -69,6 +71,16 @@ const VotingPlatform = () => {
             const res = await fetch(`${API_URL}/stats`);
             const data = await res.json();
             setVoters(data.voters || []);
+
+            // Also fetch audit logs safely
+            fetch(`${API_URL}/admin/audit`)
+                .then(res => res.json())
+                .then(auditData => {
+                    if (Array.isArray(auditData)) setAuditLog(auditData);
+                    else setAuditLog([]);
+                })
+                .catch(e => console.error("Audit fetch error", e));
+
         } catch (err) {
             console.error("Failed to fetch stats", err);
         }
