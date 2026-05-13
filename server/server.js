@@ -31,12 +31,6 @@ const upload = multer({ storage: storage });
 // --- Candidates System ---
 
 // Serve Frontend Files (Monolith Mode)
-const distPath = join(__dirname, '../dist');
-app.use(express.static(distPath));
-
-app.get('/', (req, res) => {
-    res.sendFile(join(distPath, 'index.html'));
-});
 
 app.get('/api/candidates', (req, res) => {
     db.all("SELECT * FROM candidates", [], (err, rows) => {
@@ -185,9 +179,7 @@ app.post('/api/config/voting', (req, res) => {
 });
 
 // Catch-all route for React Router (Must be after API routes)
-app.get('*', (req, res) => {
-    res.sendFile(join(__dirname, '../dist', 'index.html'));
-});
+
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
